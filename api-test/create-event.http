@@ -1,0 +1,10 @@
+POST http://localhost:3010/events
+content-type: application/json
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBoaWxpZnMyQGdtYWlsLmNvbSIsImV4cCI6MTc3ODU4OTkxMSwidXNlcklkIjo0fQ.R8Eg11BV-xzW0Vfj2wP2jzz70EbW6-P5kCLIis_M57
+
+{
+  "name": "Event Philifs2",
+  "description": "Deskripsi Event",
+  "location": "Lokasi Event",
+  "dateTime": "2026-12-31T23:59:59Z"
+}

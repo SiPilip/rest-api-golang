@@ -1,0 +1,8 @@
+PUT http://localhost:3010/events/4
+content-type: application/json
+
+{
+    "name": "Event Keempat ",
+    "description": "Deskripsi Event (Keempat)",
+    "dateTime": "2026-12-31T23:59:59Z"
+}

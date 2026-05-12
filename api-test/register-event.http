@@ -1,0 +1,2 @@
+POST http://localhost:3010/events/12/register
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBoaWxpZnMyQGdtYWlsLmNvbSIsImV4cCI6MTc3ODU5NDIwNywidXNlcklkIjo0fQ.qI2yRojojCQkwJxrNOd0n7VR7mbFei0CmBca5Lf-l-s

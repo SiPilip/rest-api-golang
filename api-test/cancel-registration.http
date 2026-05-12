@@ -1,0 +1,2 @@
+DELETE http://localhost:3010/events/12/register
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBoaWxpZnMyQGdtYWlsLmNvbSIsImV4cCI6MTc3ODU5NDkzMSwidXNlcklkIjo0fQ.t6R45iuIUMhhBzdUW4tWYnxoYWOIeM8Py9X6ONaLrQE
