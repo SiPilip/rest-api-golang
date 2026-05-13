@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -12,7 +14,12 @@ var DB *sql.DB
 
 func InitDB() {
 	var err error
-	dsn := "root:@tcp(localhost:3306)/go_udemy?parseTime=true"
+	dsn := os.Getenv("DB_DSN")
+
+	if dsn == "" {
+		log.Fatal("DB_DSN is not set in .env file")
+	}
+
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
 		panic("Error connecting to database: " + err.Error())

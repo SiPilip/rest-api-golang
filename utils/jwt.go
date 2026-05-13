@@ -2,14 +2,20 @@ package utils
 
 import (
 	"errors"
+	"log"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const secretKey = "super@secret!key.,@&^"
+var secretKey = os.Getenv("JWT_SECRET")
 
 func GenerateToken(email string, userId int64) (string, error) {
+	if secretKey == "" {
+		log.Fatal("JWT_SECRET is not set in .env file")
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email":  email,
 		"userId": userId,
