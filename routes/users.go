@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"REST-API/helpers"
 	"REST-API/models"
 	"REST-API/utils"
 	"net/http"
@@ -14,18 +15,18 @@ func signup(context *gin.Context) {
 	err := context.ShouldBindJSON(&user)
 
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Could not parse request data!" + err.Error()})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse request data!")
 		return
 	}
 
 	err = user.Save()
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save user!" + err.Error()})
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save user!")
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "User created successfully!"})
+	helpers.SuccessResponse(context, http.StatusCreated, "User created successfully", nil)
 }
 
 func login(context *gin.Context) {
@@ -34,21 +35,24 @@ func login(context *gin.Context) {
 	err := context.ShouldBindJSON(&user)
 
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Could not parse request data!" + err.Error()})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse request data.")
 		return
 	}
 
 	err = user.ValidateCredentials()
 	if err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Client error. Authentication is required or has failed."})
+		helpers.ErrorResponse(context, http.StatusUnauthorized, "Client error. Authentication is required or has failed.")
 		return
 	}
 
 	token, err := utils.GenerateToken(user.Email, user.ID)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Client error. Authentication is required or has failed.")
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Login successful!", "token": token})
+	data := gin.H{
+		"token": token,
+	}
+	helpers.SuccessResponse(context, http.StatusOK, "Login successful!", data)
 }

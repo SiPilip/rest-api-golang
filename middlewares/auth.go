@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"REST-API/helpers"
 	"REST-API/utils"
 	"net/http"
 
@@ -10,17 +11,13 @@ import (
 func Authenticate(context *gin.Context) {
 	tokenString := context.Request.Header.Get("Authorization")
 	if tokenString == "" {
-		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"message": "Server error. Authentication is required or has failed.",
-		})
+		helpers.ErrorAuthResponse(context, http.StatusUnauthorized, "Server error. Authentication is required or has failed.")
 		return
 	}
 
 	userId, err := utils.VerifyToken(tokenString)
 	if err != nil {
-		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"message": "Server error. Authentication is required or has failed.",
-		})
+		helpers.ErrorAuthResponse(context, http.StatusUnauthorized, "Server error. Authentication is required or has failed.")
 		return
 	}
 

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"REST-API/helpers"
 	"REST-API/models"
 	"net/http"
 	"strconv"
@@ -12,34 +13,30 @@ func registerForEvent(context *gin.Context) {
 	userId := context.GetInt64("userId")
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"message": "Could not parse event id.",
-		})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse event id.")
 		return
 	}
 
 	event, err := models.GetEventByID(eventId)
 	if err != nil {
-		context.JSON(http.StatusNotFound, gin.H{"message": "Event not found."})
+		helpers.ErrorResponse(context, http.StatusNotFound, "Event not found.")
 		return
 	}
 
 	err = event.Register(userId)
 	if err != nil {
-		context.JSON(http.StatusNotFound, gin.H{"message": "Could not register user for event."})
+		helpers.ErrorResponse(context, http.StatusNotFound, "Could not register user for event.")
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "Registered successfully!"})
+	helpers.SuccessResponse(context, http.StatusCreated, "Registered successfully!", nil)
 }
 
 func cancelRegistration(context *gin.Context) {
 	userId := context.GetInt64("userId")
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"message": "Could not parse event id.",
-		})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse event id.")
 		return
 	}
 
@@ -48,9 +45,9 @@ func cancelRegistration(context *gin.Context) {
 
 	err = event.CancelRegistration(userId)
 	if err != nil {
-		context.JSON(http.StatusNotFound, gin.H{"message": "Could not cancel registration."})
+		helpers.ErrorResponse(context, http.StatusNotFound, "Could not cancel registration.")
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Registration cancelled successfully!"})
+	helpers.SuccessResponse(context, http.StatusOK, "Registration cancelled successfully!", nil)
 }

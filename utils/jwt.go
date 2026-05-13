@@ -9,9 +9,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var secretKey = os.Getenv("JWT_SECRET")
 
 func GenerateToken(email string, userId int64) (string, error) {
+	secretKey := os.Getenv("JWT_SECRET")
 	if secretKey == "" {
 		log.Fatal("JWT_SECRET is not set in .env file")
 	}
@@ -26,6 +26,7 @@ func GenerateToken(email string, userId int64) (string, error) {
 }
 
 func VerifyToken(tokenString string) (int64, error) {
+	secretKey := os.Getenv("JWT_SECRET")
 	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"REST-API/helpers"
 	"REST-API/models"
 	"net/http"
 	"strconv"
@@ -11,32 +12,28 @@ import (
 func getEvents(context *gin.Context) {
 	events, err := models.GetAllEvents()
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Could not fetch events.",
-		})
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not fetch events.")
 		return
 	}
-	context.JSON(http.StatusOK, events)
+
+	helpers.SuccessResponse(context, http.StatusOK, "Events fetched succesfully!", events)
 }
 
 func getEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"message": "Could not parse event id.",
-		})
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not parse event id.")
 		return
 	}
 
 	event, err := models.GetEventByID(eventId)
 
 	if err != nil {
-		context.JSON(http.StatusNotFound, gin.H{"message": "Event not found.",
-			"error": err.Error()})
+		helpers.ErrorResponse(context, http.StatusNotFound, "Event not found.")
 		return
 	}
 
-	context.JSON(http.StatusOK, event)
+	helpers.SuccessResponse(context, http.StatusOK, "Event fetched successfully.", event)
 }
 
 func createEvent(context *gin.Context) {
@@ -44,7 +41,7 @@ func createEvent(context *gin.Context) {
 	err := context.ShouldBindJSON(&event)
 
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Could not parse request data!" + err.Error()})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "CoCould not parse request data.")
 		return
 	}
 
@@ -54,21 +51,17 @@ func createEvent(context *gin.Context) {
 	err = event.Save()
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Could not save event.",
-		})
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save event.")
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "Event created successfully!", "event": event})
+	helpers.SuccessResponse(context, http.StatusCreated, "Event created successfully.", event)
 }
 
 func updateEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"message": "Could not parse event id.",
-		})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse event id.")
 		return
 	}
 
@@ -76,15 +69,11 @@ func updateEvent(context *gin.Context) {
 	userId := context.GetInt64("userId")
 	event, err := models.GetEventByID(eventId)
 	if err != nil {
-		context.JSON(http.StatusNotFound, gin.H{
-			"message": "Could not find event by id.",
-		})
+		helpers.ErrorResponse(context, http.StatusNotFound, "Could not find event by id.")
 		return
 	}
 	if event.UserID != userId {
-		context.JSON(http.StatusUnauthorized, gin.H{
-			"message": "Client error. User can't update other user's event.",
-		})
+		helpers.ErrorResponse(context, http.StatusUnauthorized, "Client error. User can't update other user's event.")
 		return
 	}
 	
@@ -92,27 +81,25 @@ func updateEvent(context *gin.Context) {
 	err = context.ShouldBindJSON(&updatedEvent)
 
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Could not parse request data!" + err.Error()})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse request data!")
 		return
 	}
 
 	updatedEvent.ID = eventId
 	err = updatedEvent.Update()
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update event!"})
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not update event!")
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Event updated successfully!", "event": updatedEvent})
+	helpers.SuccessResponse(context, http.StatusOK, "Event updated successfully", updatedEvent)
 }
 
 func deleteEvent(context *gin.Context) {
 	// CHECK IF HAS PARAM
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"message": "Could not parse event id.",
-		})
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse event id.")
 		return
 	}
 
@@ -120,24 +107,20 @@ func deleteEvent(context *gin.Context) {
 	userId := context.GetInt64("userId")
 	event, err := models.GetEventByID(eventId)
 	if err != nil {
-		context.JSON(http.StatusNotFound, gin.H{
-			"message": "Could not find event by id.",
-		})
+		helpers.ErrorResponse(context, http.StatusNotFound, "Could not find event by id.")
 		return
 	}
 	
 	if event.UserID != userId {
-		context.JSON(http.StatusUnauthorized, gin.H{
-			"message": "Client error. User can't update other user's event.",
-		})
+		helpers.ErrorResponse(context, http.StatusUnauthorized, "Client error. User can't update other user's event.")
 		return
 	}
 
 	err = event.Delete()
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete event!"})
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not delete event.")
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully!"})
+	helpers.SuccessResponse(context, http.StatusOK, "Event deleted successfully.", nil)
 }
