@@ -54,7 +54,7 @@ func ErrorAuthResponse(ctx *gin.Context, statusCode int, message string) {
 	})
 }
 
-func ValidaitonErrorResponse(ctx *gin.Context, err error) {
+func ValidationErrorResponse(ctx *gin.Context, err error) {
 	var validationErrors validator.ValidationErrors
 	if errors.As(err, &validationErrors) {
 		messages := make([]string, 0, len(validationErrors))

@@ -18,7 +18,7 @@ func signup(context *gin.Context) {
 	// 	return
 	// }
 	if err != nil {
-		helpers.ValidaitonErrorResponse(context,err)
+		helpers.ValidationErrorResponse(context,err)
 		return
 	}
 
@@ -37,7 +37,7 @@ func login(context *gin.Context) {
 
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
-		helpers.ValidaitonErrorResponse(context,err)
+		helpers.ValidationErrorResponse(context,err)
 		return
 	}
 

@@ -23,7 +23,10 @@ func main() {
 	}
 	
 	db.InitDB()
+
 	server := gin.Default()
+	// Registered static routes
+	server.Static("/uploads", "./uploads")
 
 	routes.RegisterRoutes(server)
 

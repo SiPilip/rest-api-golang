@@ -59,24 +59,39 @@ func getEvent(context *gin.Context) {
 }
 
 func createEvent(context *gin.Context) {
-	var event models.Event
-	err := context.ShouldBindJSON(&event)
-	if err != nil {
-		helpers.ValidaitonErrorResponse(context,err)
-		return
-	}
-
-	userId := context.GetInt64("userId")
-	event.UserID = userId
-
-	err = event.Save()
-
-	if err != nil {
-		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save event.")
-		return
-	}
-
-	helpers.SuccessResponse(context, http.StatusCreated, "Event created successfully.", event)
+    var event models.Event
+    err := context.ShouldBind(&event)
+    if err != nil {
+        helpers.ValidationErrorResponse(context, err)
+        return
+    }
+    // Handle file upload
+    file, err := context.FormFile("image")
+    if err == nil {
+        if validErr := helpers.ValidateImage(file); validErr != nil {
+            helpers.ErrorResponse(context, http.StatusBadRequest, validErr.Error())
+            return
+        }
+        filePath, saveErr := helpers.SaveUploadedFile(file, "uploads")
+        if saveErr != nil {
+            helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save image.")
+            return
+        }
+        saveErr = context.SaveUploadedFile(file, filePath)
+        if saveErr != nil {
+            helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save image.")
+            return
+        }
+        event.ImageURL = "/" + filePath
+    }
+		
+    event.UserID = context.GetInt64("userId")
+    err = event.Save()
+    if err != nil {
+        helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save event.")
+        return
+    }
+    helpers.SuccessResponse(context, http.StatusCreated, "Event created successfully", event)
 }
 
 func updateEvent(context *gin.Context) {
@@ -101,7 +116,7 @@ func updateEvent(context *gin.Context) {
 	var updatedEvent models.Event
 	err = context.ShouldBindJSON(&updatedEvent)
 	if err != nil {
-		helpers.ValidaitonErrorResponse(context,err)
+		helpers.ValidationErrorResponse(context,err)
 		return
 	}
 

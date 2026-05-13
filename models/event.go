@@ -9,25 +9,26 @@ import (
 
 type Event struct {
 	ID          int64     `json:"id"`
-	Name        string    `json:"name" binding:"required,min=3,max=80"`
-	Description string    `json:"description" binding:"required,max=255"`
-	Location    string    `json:"location" binding:"required"`
-	DateTime    time.Time `json:"datetime" binding:"required"`
+	Name        string    `json:"name" form:"name" binding:"required,min=3,max=80"`
+	Description string    `json:"description" form:"description" binding:"required,max=255"`
+	Location    string    `json:"location" form:"location" binding:"required"`
+	DateTime    time.Time `json:"datetime" form:"datetime" binding:"required"`
+	ImageURL		string		`json:"image_url"`
 	UserID      int64     `json:"user_id"`
 }
 
 
 func (e *Event) Save() error {
 	query := `
-	INSERT INTO events(name, description, location, datetime, user_id) 
-	VALUES(?, ?, ?, ?, ?)`
+	INSERT INTO events(name, description, location, datetime, image_url, user_id) 
+	VALUES(?, ?, ?, ?, ?, ?)`
 	stmt, err := db.DB.Prepare(query)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 	
-	result, err := stmt.Exec(e.Name, e.Description, e.Location, e.DateTime, e.UserID)
+	result, err := stmt.Exec(e.Name, e.Description, e.Location, e.DateTime, e.ImageURL, e.UserID)
 	if err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
 	}
 	
 	// Query dengan data LIMIT dan OFFSET
-	query := "SELECT id, name, description, location, datetime, user_id FROM events"
+	query := "SELECT id, name, description, location, datetime, image_url, user_id FROM events"
 	var rows *sql.Rows
 	var err error
 
@@ -80,7 +81,7 @@ func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
 	var events []Event
 	for rows.Next() {
 		var event Event
-		err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
+		err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.ImageURL, &event.UserID)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -93,35 +94,13 @@ func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
 
 	return events, total, nil
 }
-	// rows, err := db.DB.Query(query)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer rows.Close()
-
-	// var events []Event
-
-	// for rows.Next() {
-	// 	var event Event
-	// 	err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	events = append(events, event)
-	// }
-
-	// if err = rows.Err(); err != nil {
-	// 	return nil, err
-	// }
-	// return events, nil
-
 
 func GetEventByID(id int64) (*Event, error) {
-	query := "SELECT id, name, description, location, datetime, user_id FROM events WHERE id = ?"
+	query := "SELECT id, name, description, location, datetime, image_url, user_id FROM events WHERE id = ?"
 	row := db.DB.QueryRow(query, id)
 
 	var event Event
-	err := row.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
+	err := row.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.ImageURL, &event.UserID)
 
 	if err != nil {
 			return nil, err
@@ -133,7 +112,7 @@ func GetEventByID(id int64) (*Event, error) {
 func (event *Event) Update() error {
 	query := `
 	UPDATE events
-	SET name = ?, description = ?, location = ?, datetime = ?
+	SET name = ?, description = ?, location = ?, datetime = ?, image_url = ?
 	WHERE id = ?
 	`
 
@@ -144,7 +123,7 @@ func (event *Event) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(event.Name, event.Description, event.Location, event.DateTime, event.ID)
+	_, err = stmt.Exec(event.Name, event.Description, event.Location, event.DateTime, event.ImageURL, event.ID)
 	return err
 }
 
