@@ -13,9 +13,12 @@ func signup(context *gin.Context) {
 	var user models.User
 
 	err := context.ShouldBindJSON(&user)
-
+	// if err != nil {
+	// 	helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse request data!")
+	// 	return
+	// }
 	if err != nil {
-		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse request data!")
+		helpers.ValidaitonErrorResponse(context,err)
 		return
 	}
 
@@ -33,9 +36,8 @@ func login(context *gin.Context) {
 	var user models.User
 
 	err := context.ShouldBindJSON(&user)
-
 	if err != nil {
-		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse request data.")
+		helpers.ValidaitonErrorResponse(context,err)
 		return
 	}
 

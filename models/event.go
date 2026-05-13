@@ -8,11 +8,11 @@ import (
 
 type Event struct {
 	ID          int64     `json:"id"`
-	Name        string    `json:"name" binding:"required"`
-	Description string    `json:"description" binding:"required"`
+	Name        string    `json:"name" binding:"required,min=3,max=80"`
+	Description string    `json:"description" binding:"required,max=255"`
 	Location    string    `json:"location" binding:"required"`
 	DateTime    time.Time `json:"datetime" binding:"required"`
-	UserID      int64      `json:"user_id"`
+	UserID      int64     `json:"user_id"`
 }
 
 

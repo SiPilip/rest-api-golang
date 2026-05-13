@@ -39,9 +39,8 @@ func getEvent(context *gin.Context) {
 func createEvent(context *gin.Context) {
 	var event models.Event
 	err := context.ShouldBindJSON(&event)
-
 	if err != nil {
-		helpers.ErrorResponse(context, http.StatusBadRequest, "CoCould not parse request data.")
+		helpers.ValidaitonErrorResponse(context,err)
 		return
 	}
 
@@ -79,9 +78,8 @@ func updateEvent(context *gin.Context) {
 	
 	var updatedEvent models.Event
 	err = context.ShouldBindJSON(&updatedEvent)
-
 	if err != nil {
-		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse request data!")
+		helpers.ValidaitonErrorResponse(context,err)
 		return
 	}
 

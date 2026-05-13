@@ -1,6 +1,12 @@
 package helpers
 
-import "github.com/gin-gonic/gin"
+import (
+	"errors"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+)
 
 type Response struct {
 	Status  string      `json:"status"`
@@ -32,4 +38,34 @@ func ErrorAuthResponse(ctx *gin.Context, statusCode int, message string) {
 		Status: "error",
 		Message: message,
 	})
+}
+
+func ValidaitonErrorResponse(ctx *gin.Context, err error) {
+	var validationErrors validator.ValidationErrors
+	if errors.As(err, &validationErrors) {
+		messages := make([]string, 0, len(validationErrors))
+		for _, e := range validationErrors {
+			switch e.Tag(){
+				case "required":
+					messages = append(messages, e.Field()+" is required.")
+				case "email":
+					messages = append(messages, e.Field()+" must be a valid email.")
+				case "min":
+					messages = append(messages, e.Field()+" must be a at least " + e.Param()+" characters.")
+				case "max":
+					messages = append(messages, e.Field()+" must be a at most " + e.Param()+" characters.")
+				default:
+					messages = append(messages, e.Field()+" is invalid.")
+			}
+		}
+		ctx.JSON(http.StatusBadRequest, Response{
+			Status:  "error",
+			Message: "Validation failed.",
+			Data: messages,
+		})
+		return
+	}
+	
+	// incase it was not a validation error.
+	ErrorResponse(ctx, http.StatusBadRequest, "Invalid request data")
 }
