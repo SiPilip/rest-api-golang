@@ -2,8 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"time"
 
@@ -17,12 +16,14 @@ func InitDB() {
 	dsn := os.Getenv("DB_DSN")
 
 	if dsn == "" {
-		log.Fatal("DB_DSN is not set in .env file")
+		slog.Error("DB_DSN is not set in .env file")
+		os.Exit(1)
 	}
 
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		panic("Error connecting to database: " + err.Error())
+		slog.Error("Error connecting to database:", "error", err.Error())
+		os.Exit(1)
 	}
 
 	DB.SetMaxOpenConns(10)
@@ -36,7 +37,7 @@ func InitDB() {
 		panic("Error pinging database:" + err.Error())
 	}
 
-	fmt.Println("Database connected successfully")
+	slog.Info("Database connected successfully")
 }
 
 func createTables() {

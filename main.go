@@ -3,7 +3,7 @@ package main
 import (
 	"REST-API/db"
 	"REST-API/routes"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -11,9 +11,15 @@ import (
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	slog.SetDefault(logger)
+	
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file:", err)
+		slog.Error("Error loading .env file:", "error", err)
+		os.Exit(1)
 	}
 	
 	db.InitDB()
