@@ -6,6 +6,7 @@ import (
 	"errors"
 )
 
+// https://github.com/go-playground/validator
 type User struct {
 	ID       int64  `json:"id"`
 	Email    string `json:"email" binding:"required,email"`

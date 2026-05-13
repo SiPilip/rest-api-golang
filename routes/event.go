@@ -3,6 +3,7 @@ package routes
 import (
 	"REST-API/helpers"
 	"REST-API/models"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -10,13 +11,34 @@ import (
 )
 
 func getEvents(context *gin.Context) {
-	events, err := models.GetAllEvents()
+	page, err := strconv.Atoi(context.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(context.DefaultQuery("limit", "10"))
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	search := context.DefaultQuery("search", "")
+	events, total, err := models.GetAllEvents(page, limit, search)
 	if err != nil {
 		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not fetch events.")
 		return
 	}
 
-	helpers.SuccessResponse(context, http.StatusOK, "Events fetched succesfully!", events)
+	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+
+	helpers.SuccessPaginatedResponse(context, http.StatusOK, "Events fetched succesfully.", events, helpers.Meta{
+		Page: page,
+		Limit: limit,
+		Total: total,
+		TotalPages: totalPages,
+	})
 }
 
 func getEvent(context *gin.Context) {

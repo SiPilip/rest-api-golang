@@ -2,6 +2,7 @@ package models
 
 import (
 	"REST-API/db"
+	"database/sql"
 	"errors"
 	"time"
 )
@@ -34,32 +35,86 @@ func (e *Event) Save() error {
 	id, err := result.LastInsertId()
 	e.ID = id
 	return err
-}
+} 
 
-func GetAllEvents() ([]Event, error) {
+func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
+	// Hitung offset
+	offset := (page - 1) * limit
+
+	// Hitung total datanya
+	var total int64
+	countQuery := "SELECT COUNT(*) FROM events"
+	if search != ""{
+		countQuery +=  " WHERE name LIKE ? OR description LIKE ? OR location like ?"
+		searchParam := "%" + search + "%"
+		err := db.DB.QueryRow(countQuery, searchParam, searchParam, searchParam).Scan(&total)
+		if err != nil {
+			return nil, 0, err
+		}
+	} else {
+		err := db.DB.QueryRow(countQuery).Scan(&total)
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+	
+	// Query dengan data LIMIT dan OFFSET
 	query := "SELECT id, name, description, location, datetime, user_id FROM events"
-	rows, err := db.DB.Query(query)
+	var rows *sql.Rows
+	var err error
+
+	if search != ""{
+		query += " WHERE name LIKE ? OR description LIKE ? OR location LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?"
+		searchParams:= "%" + search + "%"
+		rows, err =  db.DB.Query(query, searchParams, searchParams, searchParams, limit, offset)
+	} else {
+		query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+		rows, err = db.DB.Query(query, limit, offset)
+	}
+	
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
 	var events []Event
-
 	for rows.Next() {
 		var event Event
 		err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		events = append(events, event)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return events, nil
+
+	return events, total, nil
 }
+	// rows, err := db.DB.Query(query)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer rows.Close()
+
+	// var events []Event
+
+	// for rows.Next() {
+	// 	var event Event
+	// 	err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	events = append(events, event)
+	// }
+
+	// if err = rows.Err(); err != nil {
+	// 	return nil, err
+	// }
+	// return events, nil
+
 
 func GetEventByID(id int64) (*Event, error) {
 	query := "SELECT id, name, description, location, datetime, user_id FROM events WHERE id = ?"

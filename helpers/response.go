@@ -14,6 +14,20 @@ type Response struct {
 	Data    any         `json:"data,omitempty"`
 }
 
+type Meta struct {
+	Page				int			`json:"page"`
+	Limit 			int			`json:"limit"`
+	Total 			int64		`json:"total"`
+	TotalPages 	int			`json:"total_pages"`
+}
+
+type PaginatedResponse struct {
+	Status			string	`json:"status"`
+	Message 		string	`json:"message"`
+	Data 				any			`json:"data"`
+	Meta 				Meta		`json:"meta"`
+}
+
 func SuccessResponse(ctx *gin.Context, statusCode int, message string, data any) {
 	// context.JSON(http.StatusOK, events)
 	ctx.JSON(statusCode, Response{
@@ -68,4 +82,13 @@ func ValidaitonErrorResponse(ctx *gin.Context, err error) {
 	
 	// incase it was not a validation error.
 	ErrorResponse(ctx, http.StatusBadRequest, "Invalid request data")
+}
+
+func SuccessPaginatedResponse(ctx *gin.Context, statusCode int, message string, data any, meta Meta) {
+	ctx.JSON(statusCode, PaginatedResponse{
+		Status: "success",
+		Message: message,
+		Data: data,
+		Meta: meta,
+	})
 }
