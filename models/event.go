@@ -8,13 +8,14 @@ import (
 )
 
 type Event struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name" form:"name" binding:"required,min=3,max=80"`
-	Description string    `json:"description" form:"description" binding:"required,max=255"`
-	Location    string    `json:"location" form:"location" binding:"required"`
-	DateTime    time.Time `json:"datetime" form:"datetime" binding:"required"`
-	ImageURL		string		`json:"image_url"`
-	UserID      int64     `json:"user_id"`
+	ID          int64     	`json:"id"`
+	Name        string    	`json:"name" form:"name" binding:"required,min=3,max=80"`
+	Description string    	`json:"description" form:"description" binding:"required,max=255"`
+	Location    string    	`json:"location" form:"location" binding:"required"`
+	DateTime    time.Time 	`json:"datetime" form:"datetime" binding:"required"`
+	ImageURL		string			`json:"image_url"`
+	UserID      int64     	`json:"user_id"`
+	DeletedAt		*time.Time	`json:"deleted_at,omitempty"`
 }
 
 
@@ -44,9 +45,9 @@ func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
 
 	// Hitung total datanya
 	var total int64
-	countQuery := "SELECT COUNT(*) FROM events"
+	countQuery := "SELECT COUNT(*) FROM events WHERE deleted_at IS NULL"
 	if search != ""{
-		countQuery +=  " WHERE name LIKE ? OR description LIKE ? OR location like ?"
+		countQuery +=  " AND (name LIKE ? OR description LIKE ? OR location like ?)"
 		searchParam := "%" + search + "%"
 		err := db.DB.QueryRow(countQuery, searchParam, searchParam, searchParam).Scan(&total)
 		if err != nil {
@@ -60,12 +61,12 @@ func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
 	}
 	
 	// Query dengan data LIMIT dan OFFSET
-	query := "SELECT id, name, description, location, datetime, image_url, user_id FROM events"
+	query := "SELECT id, name, description, location, datetime, image_url, user_id FROM events WHERE deleted_at IS NULL"
 	var rows *sql.Rows
 	var err error
 
 	if search != ""{
-		query += " WHERE name LIKE ? OR description LIKE ? OR location LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?"
+		query += " AND (name LIKE ? OR description LIKE ? OR location LIKE ?) ORDER BY id DESC LIMIT ? OFFSET ?"
 		searchParams:= "%" + search + "%"
 		rows, err =  db.DB.Query(query, searchParams, searchParams, searchParams, limit, offset)
 	} else {
@@ -96,7 +97,7 @@ func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
 }
 
 func GetEventByID(id int64) (*Event, error) {
-	query := "SELECT id, name, description, location, datetime, image_url, user_id FROM events WHERE id = ?"
+	query := "SELECT id, name, description, location, datetime, image_url, user_id FROM events WHERE id = ? AND deleted_at IS NULL"
 	row := db.DB.QueryRow(query, id)
 
 	var event Event
@@ -139,13 +140,19 @@ func (event *Event) Delete() error {
 	defer tx.Rollback()
 
 	// 1. Hapus semua registrasi untuk event ini
-	_, err = tx.Exec("DELETE FROM registrations WHERE event_id = ?", event.ID)
-	if err != nil {
-		return err
-	}
+	// _, err = tx.Exec("DELETE FROM registrations WHERE event_id = ?", event.ID)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// 2. Hapus event-nya
-	_, err = tx.Exec("DELETE FROM events WHERE id = ?", event.ID)
+	// _, err = tx.Exec("DELETE FROM events WHERE id = ?", event.ID)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// SOFT-DELETE
+	_, err = tx.Exec("UPDATE events SET deleted_at = NOW() WHERE id = ?", event.ID)
 	if err != nil {
 		return err
 	}
