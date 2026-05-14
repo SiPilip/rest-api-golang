@@ -12,18 +12,29 @@ func RegisterRoutes(server *gin.Engine) {
 	server.Use(middlewares.CORSMiddleware())
 	server.Use(middlewares.TimeoutMiddleware(5 * time.Second))
 	server.Use(middlewares.RequestLogger())
-	
-	server.GET("/events", getEvents)
-	server.GET("/events/:id", getEvent)
 
-	authenticated := server.Group("/")
-	authenticated.Use(middlewares.Authenticate)
-	authenticated.POST("/events", createEvent)
-	authenticated.PUT("/events/:id", updateEvent)
-	authenticated.DELETE("/events/:id", deleteEvent)
-	authenticated.POST("/events/:id/register", registerForEvent)
-	authenticated.DELETE("/events/:id/register", cancelRegistration)
+	// API v1
+	v1 := server.Group("/api/v1")
+	{
+		v1.GET("/events", getEvents)
+		v1.GET("/events/:id", getEvent)
 
-	server.POST("/signup", signup)
-	server.POST("/login", login)
+		authenticated := v1.Group("/")
+		authenticated.Use(middlewares.Authenticate)
+		authenticated.POST("/events", createEvent)
+		authenticated.PUT("/events/:id", updateEvent)
+		authenticated.DELETE("/events/:id", deleteEvent)
+		authenticated.POST("/events/:id/register", registerForEvent)
+		authenticated.DELETE("/events/:id/register", cancelRegistration)
+
+		v1.POST("/signup", signup)
+		v1.POST("/login", login)
+	}
+
+	// API v2 — contoh di masa depan
+	// v2 := server.Group("/api/v2")
+	// {
+	// 	v2.GET("/events", getEventsV2)  // handler baru dengan format response berbeda
+	// 	// ... route v2 lainnya
+	// }
 }
