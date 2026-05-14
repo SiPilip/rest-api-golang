@@ -11,10 +11,22 @@ import (
 	"syscall"
 	"time"
 
+	_ "REST-API/docs" // Swagger docs yang di-generate
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title           Event API
+// @version         1.0
+// @description     REST API untuk manajemen event dengan autentikasi JWT
+// @host            localhost:3010
+// @BasePath        /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	// Setup slog
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -36,6 +48,9 @@ func main() {
 	server := gin.Default()
 	routes.RegisterRoutes(server)
 	server.Static("/uploads", "./uploads")
+
+	// Swagger
+	server.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// GRACEFUL SHUTDOWN
 	port := os.Getenv("SERVER_PORT")

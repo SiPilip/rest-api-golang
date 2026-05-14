@@ -11,6 +11,17 @@ import (
 )
 
 // Hanya GetEvents yang pakai timeoutmiddleware
+// @Summary      Get all events
+// @Description  Fetch paginated list of events with optional search
+// @Tags         Events
+// @Accept       json
+// @Produce      json
+// @Param        page   query  int     false  "Page number"    default(1)
+// @Param        limit  query  int     false  "Items per page" default(10)
+// @Param        search query  string  false  "Search keyword"
+// @Success      200    {object} helpers.PaginatedResponse
+// @Failure      500    {object} helpers.Response
+// @Router       /events [get]
 func getEvents(context *gin.Context) {
 	page, err := strconv.Atoi(context.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {
@@ -32,7 +43,7 @@ func getEvents(context *gin.Context) {
 		if context.Request.Context().Err() != nil {
         return
     }
-		
+
 		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not fetch events.")
 		return
 	}
@@ -47,6 +58,14 @@ func getEvents(context *gin.Context) {
 	})
 }
 
+// @Summary      Get event by ID
+// @Description  Fetch a single event by its ID
+// @Tags         Events
+// @Produce      json
+// @Param        id  path  int  true  "Event ID"
+// @Success      200 {object} helpers.Response
+// @Failure      404 {object} helpers.Response
+// @Router       /events/{id} [get]
 func getEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
@@ -64,6 +83,21 @@ func getEvent(context *gin.Context) {
 	helpers.SuccessResponse(context, http.StatusOK, "Event fetched successfully.", event)
 }
 
+// @Summary      Create event
+// @Description  Create a new event (supports multipart form with image upload)
+// @Tags         Events
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        name        formData string true  "Event name"
+// @Param        description formData string true  "Event description"
+// @Param        location    formData string true  "Event location"
+// @Param        datetime    formData string true  "Event datetime (RFC3339)"
+// @Param        image       formData file   false "Event image"
+// @Success      201 {object} helpers.Response
+// @Failure      400 {object} helpers.Response
+// @Failure      500 {object} helpers.Response
+// @Security     BearerAuth
+// @Router       /events [post]
 func createEvent(context *gin.Context) {
     var event models.Event
     err := context.ShouldBind(&event)
@@ -100,6 +134,17 @@ func createEvent(context *gin.Context) {
     helpers.SuccessResponse(context, http.StatusCreated, "Event created successfully", event)
 }
 
+// @Summary      Update event
+// @Description  Update an existing event (owner only)
+// @Tags         Events
+// @Accept       json
+// @Produce      json
+// @Param        id  path  int  true  "Event ID"
+// @Success      200 {object} helpers.Response
+// @Failure      400 {object} helpers.Response
+// @Failure      401 {object} helpers.Response
+// @Security     BearerAuth
+// @Router       /events/{id} [put]
 func updateEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
@@ -135,6 +180,15 @@ func updateEvent(context *gin.Context) {
 	helpers.SuccessResponse(context, http.StatusOK, "Event updated successfully", updatedEvent)
 }
 
+// @Summary      Delete event (soft delete)
+// @Description  Soft delete an event (owner only)
+// @Tags         Events
+// @Produce      json
+// @Param        id  path  int  true  "Event ID"
+// @Success      200 {object} helpers.Response
+// @Failure      401 {object} helpers.Response
+// @Security     BearerAuth
+// @Router       /events/{id} [delete]
 func deleteEvent(context *gin.Context) {
 	// CHECK IF HAS PARAM
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)

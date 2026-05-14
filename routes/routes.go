@@ -7,6 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Summary Register user
+// @Description Register a new user
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body models.User true "User credentials"
+// @Success 201 {object} helpers.Response
+// @Failure 400 {object} helpers.Response
+// @Router /signup [post]
 func RegisterRoutes(server *gin.Engine) {
 	server.Use(middlewares.RateLimiter())
 	server.Use(middlewares.CORSMiddleware())
