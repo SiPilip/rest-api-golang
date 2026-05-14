@@ -7,6 +7,7 @@ import (
 )
 
 func RegisterRoutes(server *gin.Engine) {
+	server.Use(middlewares.RateLimiter())
 	server.Use(middlewares.CORSMiddleware())
 	server.Use(middlewares.RequestLogger())
 	
