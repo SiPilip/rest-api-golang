@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Hanya GetEvents yang pakai timeoutmiddleware
 func getEvents(context *gin.Context) {
 	page, err := strconv.Atoi(context.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {
@@ -25,8 +26,13 @@ func getEvents(context *gin.Context) {
 	}
 
 	search := context.DefaultQuery("search", "")
-	events, total, err := models.GetAllEvents(page, limit, search)
+	events, total, err := models.GetAllEvents(page, limit, search, context.Request.Context())
 	if err != nil {
+		// Error timeout cause
+		if context.Request.Context().Err() != nil {
+        return
+    }
+		
 		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not fetch events.")
 		return
 	}

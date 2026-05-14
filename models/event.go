@@ -2,6 +2,7 @@ package models
 
 import (
 	"REST-API/db"
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -39,7 +40,7 @@ func (e *Event) Save() error {
 	return err
 } 
 
-func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
+func GetAllEvents(page, limit int, search string, ctx context.Context) ([]Event, int64, error) {
 	// Hitung offset
 	offset := (page - 1) * limit
 
@@ -49,12 +50,12 @@ func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
 	if search != ""{
 		countQuery +=  " AND (name LIKE ? OR description LIKE ? OR location like ?)"
 		searchParam := "%" + search + "%"
-		err := db.DB.QueryRow(countQuery, searchParam, searchParam, searchParam).Scan(&total)
+		err := db.DB.QueryRowContext(ctx, countQuery, searchParam, searchParam, searchParam).Scan(&total)
 		if err != nil {
 			return nil, 0, err
 		}
 	} else {
-		err := db.DB.QueryRow(countQuery).Scan(&total)
+		err := db.DB.QueryRowContext(ctx, countQuery).Scan(&total)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -68,10 +69,10 @@ func GetAllEvents(page, limit int, search string) ([]Event, int64, error) {
 	if search != ""{
 		query += " AND (name LIKE ? OR description LIKE ? OR location LIKE ?) ORDER BY id DESC LIMIT ? OFFSET ?"
 		searchParams:= "%" + search + "%"
-		rows, err =  db.DB.Query(query, searchParams, searchParams, searchParams, limit, offset)
+		rows, err =  db.DB.QueryContext(ctx, query, searchParams, searchParams, searchParams, limit, offset)
 	} else {
 		query += " ORDER BY id DESC LIMIT ? OFFSET ?"
-		rows, err = db.DB.Query(query, limit, offset)
+		rows, err = db.DB.QueryContext(ctx, query, limit, offset)
 	}
 	
 	if err != nil {
