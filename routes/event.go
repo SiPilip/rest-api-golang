@@ -3,9 +3,11 @@ package routes
 import (
 	"REST-API/helpers"
 	"REST-API/models"
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,6 +39,18 @@ func getEvents(context *gin.Context) {
 	}
 
 	search := context.DefaultQuery("search", "")
+	ctx := context.Request.Context()
+
+	// 1. Cek cache
+	cacheKey := fmt.Sprintf("events:page=%d:limit=%d:search=%s", page, limit, search)
+
+	var cachedResponse helpers.PaginatedResponse
+	if err := helpers.GetCache(ctx, cacheKey, &cachedResponse); err == nil {
+		context.JSON(http.StatusOK, cachedResponse)
+		return
+	}
+
+	// 2. Cache miss - Query Database
 	events, total, err := models.GetAllEvents(page, limit, search, context.Request.Context())
 	if err != nil {
 		// Error timeout cause
@@ -50,12 +64,28 @@ func getEvents(context *gin.Context) {
 
 	totalPages := int(math.Ceil(float64(total) / float64(limit)))
 
-	helpers.SuccessPaginatedResponse(context, http.StatusOK, "Events fetched succesfully.", events, helpers.Meta{
-		Page: page,
-		Limit: limit,
-		Total: total,
-		TotalPages: totalPages,
-	})
+	// helpers.SuccessPaginatedResponse(context, http.StatusOK, "Events fetched succesfully.", events, helpers.Meta{
+	// 	Page: page,
+	// 	Limit: limit,
+	// 	Total: total,
+	// 	TotalPages: totalPages,
+	// })
+
+	response := helpers.PaginatedResponse{
+		Status: "success",
+		Message: "Events fetched succesfully.",
+		Data: events,
+		Meta: helpers.Meta{
+			Page: page,
+			Limit: limit,
+			Total: total,
+			TotalPages: totalPages,
+		},
+	}
+
+	// 3. Cache miss, langsung simopan ke cache (TTL 30 detik)
+	helpers.SetCache(ctx, cacheKey, response, 30*time.Second)
+	context.JSON(http.StatusOK, response)
 }
 
 // @Summary      Get event by ID
@@ -131,6 +161,10 @@ func createEvent(context *gin.Context) {
         helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save event.")
         return
     }
+
+		// Hapus cache redis setelah di save
+		helpers.DeleteCacheByPattern(context.Request.Context(), "events:*")
+		
     helpers.SuccessResponse(context, http.StatusCreated, "Event created successfully", event)
 }
 
@@ -177,6 +211,9 @@ func updateEvent(context *gin.Context) {
 		return
 	}
 
+	// Hapus cache redis setelah di save
+	helpers.DeleteCacheByPattern(context.Request.Context(), "events:*")
+
 	helpers.SuccessResponse(context, http.StatusOK, "Event updated successfully", updatedEvent)
 }
 
@@ -215,6 +252,9 @@ func deleteEvent(context *gin.Context) {
 		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not delete event.")
 		return
 	}
+
+	// Hapus cache redis setelah di save
+	helpers.DeleteCacheByPattern(context.Request.Context(), "events:*")
 
 	helpers.SuccessResponse(context, http.StatusOK, "Event deleted successfully.", nil)
 }

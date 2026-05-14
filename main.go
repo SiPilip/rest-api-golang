@@ -43,6 +43,8 @@ func main() {
 	
 	// Init database
 	db.InitDB()
+	// Init redis
+	db.InitRedis()
 
 	// Setup gin
 	server := gin.Default()
@@ -87,6 +89,13 @@ func main() {
 	if err := db.DB.Close(); err != nil {
 		slog.Error("Error closing database", "error", err)
 	}	
+
+	// Tutup koneksi Redis
+	if db.RedisClient != nil {
+		if err := db.RedisClient.Close(); err != nil {
+			slog.Error("Error closing redis", "error", err)
+		}
+	}
 
 	slog.Info("Server gracefully stopped")
 }
