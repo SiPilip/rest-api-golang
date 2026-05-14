@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS registrations (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  event_id INT NOT NULL,
+  user_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(event_id) REFERENCES events(id),
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);

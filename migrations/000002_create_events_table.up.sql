@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS events (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  location TEXT NOT NULL,
+  datetime DATETIME NOT NULL,
+  image_url VARCHAR(255) DEFAULT '',
+  user_id INT NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);

@@ -128,35 +128,65 @@ func (event *Event) Update() error {
 }
 
 func (event *Event) Delete() error {
-	query := `
-	DELETE FROM events
-	WHERE id = ?
-	`
-
-	stmt, err := db.DB.Prepare(query)
-	if err != nil {
-			return err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(event.ID)
-	return err
-}
-
-func (e *Event) Register(userId int64) error {
-	query := `
-	INSERT INTO registrations(event_id, user_id)
-	VALUES (?, ?)
-	`
-	stmt, err := db.DB.Prepare(query)
+	// Mulai transaction
+	tx, err := db.DB.Begin()
 	if err != nil {
 		return err
 	}
-	defer stmt.Close()
 
-	_, err = stmt.Exec(e.ID, userId)
-	return err
+	// Kalau ada yang error, kita langsung rollback
+	// Kalau sudah di commit, rollback akan di pass
+	defer tx.Rollback()
+
+	// 1. Hapus semua registrasi untuk event ini
+	_, err = tx.Exec("DELETE FROM registrations WHERE event_id = ?", event.ID)
+	if err != nil {
+		return err
+	}
+
+	// 2. Hapus event-nya
+	_, err = tx.Exec("DELETE FROM events WHERE id = ?", event.ID)
+	if err != nil {
+		return err
+	}
+
+	// Jika 1 dan 2 berhasil kita commit
+	return tx.Commit()
+}
+
+func (e *Event) Register(userId int64) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	// 1. Cek apakah user sudah terdaftar
+	var count int
+	err = tx.QueryRow(`
+	SELECT COUNT(*) FROM registrations WHERE event_id = ?
+	AND
+	user_id = ?
+	`, e.ID, userId).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return errors.New("user already registered for this event")
+	}
+
+	// 2. Kalau sudah aman, kita daftarkan
+	_, err = tx.Exec(`
+	INSERT INTO registrations(event_id, user_id)
+	VALUES
+	(?, ?)
+	`, e.ID, userId)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+	
 }
 
 func (e Event) CancelRegistration(userId int64) error {
@@ -187,3 +217,35 @@ func (e Event) CancelRegistration(userId int64) error {
 	}
 	return nil
 }
+
+// func (event *Event) Delete() error {
+// 	query := `
+// 	DELETE FROM events
+// 	WHERE id = ?
+// 	`
+
+// 	stmt, err := db.DB.Prepare(query)
+// 	if err != nil {
+// 			return err
+// 	}
+
+// 	defer stmt.Close()
+
+// 	_, err = stmt.Exec(event.ID)
+// 	return err
+// }
+
+// func (e *Event) Register(userId int64) error {
+// 	query := `
+// 	INSERT INTO registrations(event_id, user_id)
+// 	VALUES (?, ?)
+// 	`
+// 	stmt, err := db.DB.Prepare(query)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer stmt.Close()
+
+// 	_, err = stmt.Exec(e.ID, userId)
+// 	return err
+// }

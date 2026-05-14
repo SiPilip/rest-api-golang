@@ -84,7 +84,7 @@ func createEvent(context *gin.Context) {
         }
         event.ImageURL = "/" + filePath
     }
-		
+
     event.UserID = context.GetInt64("userId")
     err = event.Save()
     if err != nil {
@@ -100,7 +100,6 @@ func updateEvent(context *gin.Context) {
 		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse event id.")
 		return
 	}
-
 	
 	userId := context.GetInt64("userId")
 	event, err := models.GetEventByID(eventId)

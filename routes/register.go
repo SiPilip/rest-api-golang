@@ -25,7 +25,7 @@ func registerForEvent(context *gin.Context) {
 
 	err = event.Register(userId)
 	if err != nil {
-		helpers.ErrorResponse(context, http.StatusNotFound, "Could not register user for event.")
+		helpers.ErrorResponse(context, http.StatusBadRequest, "Could not register user for event.")
 		return
 	}
 
