@@ -11,8 +11,10 @@ import (
 var RedisClient *redis.Client
 
 func InitRedis() {
+	address := os.Getenv("REDIS_ADDR")
+	
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr: os.Getenv("REDIS_ADDR"),
+		Addr: address,
 		DB: 0,
 	})
 

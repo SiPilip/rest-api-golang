@@ -4,6 +4,7 @@ import (
 	"REST-API/helpers"
 	"REST-API/models"
 	"REST-API/utils"
+	"REST-API/workers"
 	"net/http"
 	"time"
 
@@ -23,10 +24,6 @@ func signup(context *gin.Context) {
 	var user models.User
 
 	err := context.ShouldBindJSON(&user)
-	// if err != nil {
-	// 	helpers.ErrorResponse(context, http.StatusBadRequest, "Could not parse request data!")
-	// 	return
-	// }
 	if err != nil {
 		helpers.ValidationErrorResponse(context,err)
 		return
@@ -38,6 +35,17 @@ func signup(context *gin.Context) {
 		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save user!")
 		return
 	}
+
+	workers.Enqueue(workers.Job{
+    Name: "send_welcome_email",
+    Execute: func() error {
+        return helpers.SendEmail(helpers.EmailData{
+            To:      user.Email,
+            Subject: "Welcome to Event API!",
+            Body:    helpers.WelcomeEmailBody(user.Email),
+        })
+    },
+})
 
 	helpers.SuccessResponse(context, http.StatusCreated, "User created successfully", nil)
 }

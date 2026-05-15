@@ -17,10 +17,14 @@ import (
 // @Failure 400 {object} helpers.Response
 // @Router /signup [post]
 func RegisterRoutes(server *gin.Engine) {
+	server.Use(middlewares.RequestID())
 	server.Use(middlewares.RateLimiter())
 	server.Use(middlewares.CORSMiddleware())
 	server.Use(middlewares.TimeoutMiddleware(5 * time.Second))
 	server.Use(middlewares.RequestLogger())
+
+	// Health Check
+	server.GET("/health", healthCheck)
 
 	// API v1
 	v1 := server.Group("/api/v1")

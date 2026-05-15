@@ -18,6 +18,7 @@ func RequestLogger() gin.HandlerFunc {
 		duration := time.Since(start)
 
 		slog.Info("Request",
+				"requestId", c.GetString("requestId"),
 				"method", c.Request.Method,
 				"path", c.Request.URL.Path,
 				"status", c.Writer.Status(),

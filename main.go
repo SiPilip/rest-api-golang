@@ -3,6 +3,7 @@ package main
 import (
 	"REST-API/db"
 	"REST-API/routes"
+	"REST-API/workers"
 	"context"
 	"log/slog"
 	"net/http"
@@ -46,6 +47,9 @@ func main() {
 	// Init redis
 	db.InitRedis()
 
+	// Start worker pool: 3 workers, queue size 100
+	workers.Start(3, 100)
+
 	// Setup gin
 	server := gin.Default()
 	routes.RegisterRoutes(server)
@@ -84,6 +88,8 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("Server forced to shutdown", "error", err)
 	}
+
+	workers.Stop()
 
 	// Tutup koneksi database
 	if err := db.DB.Close(); err != nil {
