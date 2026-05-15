@@ -65,7 +65,7 @@ func login(context *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateToken(user.Email, user.ID)
+	token, err := utils.GenerateToken(user.Email, user.ID, user.Role)
 	if err != nil {
 		helpers.ErrorResponse(context, http.StatusBadRequest, "Client error. Authentication is required or has failed.")
 		return

@@ -8,13 +8,14 @@ import (
 
 // https://github.com/go-playground/validator
 type User struct {
-	ID       int64  `json:"id"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6,max=255"`
+	ID       	int64  `json:"id"`
+	Email    	string `json:"email" binding:"required,email"`
+	Password 	string `json:"password" binding:"required,min=6,max=255"`
+	Role			string `json:"role"`
 }
 
 func (u *User) Save() error {
-	query := "INSERT INTO users(email, password) VALUES (?, ?)"
+	query := "INSERT INTO users(email, password, role) VALUES (?, ?, 'user')"
 	stmt, err := db.DB.Prepare(query)
 
 	if err != nil {
@@ -43,14 +44,14 @@ func (u *User) Save() error {
 
 func (u *User) ValidateCredentials() error {
 	query := `
-	SELECT id, password
+	SELECT id, password, role
 	FROM users
 	WHERE email = ?
 	`
 	row := db.DB.QueryRow(query, u.Email)
 
 	var retrievedPassword string
-	err := row.Scan(&u.ID, &retrievedPassword)
+	err := row.Scan(&u.ID, &retrievedPassword, &u.Role)
 	if err != nil {
 		return errors.New("credentials invalid")
 	}

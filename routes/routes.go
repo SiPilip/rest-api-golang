@@ -39,6 +39,14 @@ func RegisterRoutes(server *gin.Engine) {
 		v1.POST("/signup", signup)
 		v1.POST("/login", login)
 	}
+	// Admin only routes
+	admin := v1.Group("/admin")
+	admin.Use(middlewares.Authenticate)
+	admin.Use(middlewares.RequireRole("admin"))
+	{
+			// Contoh: endpoint untuk lihat semua users (nanti)
+			// admin.GET("/users", getAllUsers)
+	}
 
 	// API v2 — contoh di masa depan
 	// v2 := server.Group("/api/v2")

@@ -192,8 +192,9 @@ func updateEvent(context *gin.Context) {
 		helpers.ErrorResponse(context, http.StatusNotFound, "Could not find event by id.")
 		return
 	}
-	if event.UserID != userId {
-		helpers.ErrorResponse(context, http.StatusUnauthorized, "Client error. User can't update other user's event.")
+	role := context.GetString("role")
+	if event.UserID != userId && role != "admin"{
+		helpers.ErrorResponse(context, http.StatusForbidden, "You don't have permission to modify this event.")
 		return
 	}
 	
@@ -242,8 +243,9 @@ func deleteEvent(context *gin.Context) {
 		return
 	}
 	
-	if event.UserID != userId {
-		helpers.ErrorResponse(context, http.StatusUnauthorized, "Client error. User can't update other user's event.")
+	role := context.GetString("role")
+	if event.UserID != userId && role != "admin" {
+		helpers.ErrorResponse(context, http.StatusForbidden, "You don't have permission to delete this event.")
 		return
 	}
 
