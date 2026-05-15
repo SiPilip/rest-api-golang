@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"log"
 	"os"
@@ -10,7 +12,7 @@ import (
 )
 
 
-func GenerateToken(email string, userId int64, role string) (string, error) {
+func GenerateAccessToken(email string, userId int64, role string) (string, error) {
 	secretKey := os.Getenv("JWT_SECRET")
 	if secretKey == "" {
 		log.Fatal("JWT_SECRET is not set in .env file")
@@ -20,10 +22,19 @@ func GenerateToken(email string, userId int64, role string) (string, error) {
 		"email":  email,
 		"userId": userId,
 		"role": role,
-		"exp": time.Now().Add(time.Hour * 2).Unix(),
+		"exp": time.Now().Add(time.Second * 5).Unix(),
 	})
 
 	return token.SignedString([]byte(secretKey))
+}
+
+func GenerateRefreshToken() (string, error) {
+	bytes := make([]byte, 32)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 func VerifyToken(tokenString string) (int64, string, error) {

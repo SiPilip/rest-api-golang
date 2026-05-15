@@ -38,6 +38,8 @@ func RegisterRoutes(server *gin.Engine) {
 
 		v1.POST("/signup", signup)
 		v1.POST("/login", login)
+		v1.POST("/refresh", refreshAccessToken)
+		v1.POST("/logout", logout)
 	}
 	// Admin only routes
 	admin := v1.Group("/admin")

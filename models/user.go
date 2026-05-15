@@ -64,3 +64,15 @@ func (u *User) ValidateCredentials() error {
 
 	return nil
 }
+
+func GetUserByID(id int64) (*User, error) {
+	query := "SELECT id, email, role FROM users WHERE id = ?"
+	row := db.DB.QueryRow(query, id)
+
+	var user User
+	err := row.Scan(&user.ID, &user.Email, &user.Role)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

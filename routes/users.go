@@ -5,6 +5,7 @@ import (
 	"REST-API/models"
 	"REST-API/utils"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -65,14 +66,103 @@ func login(context *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateToken(user.Email, user.ID, user.Role)
+	// Generate access token (15 minutes)
+	accessToken, err := utils.GenerateAccessToken(user.Email, user.ID, user.Role)
 	if err != nil {
 		helpers.ErrorResponse(context, http.StatusBadRequest, "Client error. Authentication is required or has failed.")
 		return
 	}
 
-	data := gin.H{
-		"token": token,
+	// Generate refresh token (7 hari)
+	refreshToken, err := utils.GenerateRefreshToken()
+	if err != nil {
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not generate token.")
+		return
 	}
-	helpers.SuccessResponse(context, http.StatusOK, "Login successful!", data)
+
+	// Simpan refresh token di database
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	err = models.SaveRefreshToken(user.ID, refreshToken, expiresAt)
+	if err != nil {
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not save refresh token.")
+		return
+	}
+
+	helpers.SuccessResponse(context, http.StatusOK, "Login successful!", 
+		gin.H{
+			"access_token": accessToken,
+			"refresh_token": refreshToken,
+			"token_type": "Bearer",
+			"expires_in": 15 * 60, // 15 minutes in seconds
+			"user": gin.H{
+				"id": user.ID,
+				"email": user.Email,
+				"role": user.Role,
+			},
+		},
+	)
+}	
+
+func refreshAccessToken(context *gin.Context) {
+	var body struct {
+        RefreshToken string `json:"refresh_token" binding:"required"`
+  }
+
+	if err := context.ShouldBindJSON(&body); err != nil {
+		helpers.ValidationErrorResponse(context, err)
+		return
+	}
+
+	// Cari refresh token  di database
+	rt, err := models.GetRefreshToken(body.RefreshToken)
+	if err != nil {
+		helpers.ErrorResponse(context, http.StatusUnauthorized, "Invalid refresh token.")
+		return
+	}
+
+	// Cek apakah expired
+	if time.Now().After(rt.ExpiresAt) {
+		models.DeleteRefreshToken(body.RefreshToken)
+		helpers.ErrorResponse(context, http.StatusUnauthorized, "Refresh token expired. Please login again.")
+		return
+	}
+
+	// Ambil data user untuk generate token baru
+	user, err := models.GetUserByID(rt.UserID)
+	if err != nil {
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not find user.")
+		return
+	}
+
+	// Generate access token baru
+	accessToken, err := utils.GenerateAccessToken(user.Email, user.ID, user.Role)
+	if err != nil {
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not generate token.")
+		return
+	}
+
+	helpers.SuccessResponse(context, http.StatusOK, "Token refreshed", 
+		gin.H {
+			"access_token": accessToken,
+		},
+	)
+}
+
+func logout(context *gin.Context){
+	var body struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+
+	if err := context.ShouldBindJSON(&body); err != nil {
+		helpers.ValidationErrorResponse(context, err)
+		return
+	}
+
+	err := models.DeleteRefreshToken(body.RefreshToken)
+	if err != nil {
+		helpers.ErrorResponse(context, http.StatusInternalServerError, "Could not logout.")
+		return
+	}
+
+	helpers.SuccessResponse(context, http.StatusOK, "Logged out successfully.", nil)
 }
