@@ -39,7 +39,7 @@ func main() {
 	err := godotenv.Load()
 	if err != nil {
 		slog.Error("Error loading .env file:", "error", err)
-		os.Exit(1)
+		// os.Exit(1)
 	}
 	
 	// Init database

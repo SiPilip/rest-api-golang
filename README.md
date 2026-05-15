@@ -370,3 +370,237 @@ go test ./... -v
 # Build production binary
 go build -o server .
 ```
+
+---
+
+## Tier 3 — Advanced (Production-Grade)
+
+### Dependency Tambahan Tier 3
+
+```bash
+go get github.com/redis/go-redis/v9         # Redis client
+go get github.com/google/uuid               # UUID generator
+go get github.com/wneessen/go-mail           # Email SMTP
+```
+
+### 17. Redis Caching
+
+```go
+// db/redis.go — Inisialisasi
+RedisClient = redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_ADDR")})
+
+// helpers/cache.go — Set, Get, Delete
+helpers.SetCache(ctx, "events:page=1", data, 30*time.Second)
+helpers.GetCache(ctx, "events:page=1", &dest)
+helpers.DeleteCacheByPattern(ctx, "events:*")  // cache invalidation
+
+// Pattern: Cache-Aside
+// 1. Cek cache → HIT? return
+// 2. MISS → query DB → simpan ke cache → return
+
+// Cache invalidation di handler create/update/delete:
+helpers.DeleteCacheByPattern(ctx, "events:*")
+```
+
+### 18. RBAC (Role-Based Access Control)
+
+```go
+// Struct User
+Role string `json:"role"`  // "user" atau "admin"
+
+// JWT claims menyimpan role
+jwt.MapClaims{"userId": id, "role": role, "exp": ...}
+
+// Middleware authorize
+func RequireRole(roles ...string) gin.HandlerFunc { ... }
+
+// Handler — admin bypass ownership check
+role := c.GetString("role")
+if event.UserID != userId && role != "admin" {
+    // 403 Forbidden
+}
+
+// Route admin-only
+admin := v1.Group("/admin")
+admin.Use(middlewares.Authenticate, middlewares.RequireRole("admin"))
+```
+
+### 19. Refresh Token
+
+```go
+// Login → return 2 token
+access_token  → JWT, 15 menit (untuk akses API)
+refresh_token → random string, 7 hari (untuk minta access token baru)
+
+// Endpoints
+POST /login     → return access_token + refresh_token
+POST /refresh   → kirim refresh_token → return access_token baru (TANPA auth)
+POST /logout    → hapus refresh_token dari database (TANPA auth)
+
+// Generate refresh token (random, bukan JWT)
+bytes := make([]byte, 32)
+rand.Read(bytes)
+hex.EncodeToString(bytes)
+
+// models/token.go
+SaveRefreshToken(userId, token, expiresAt)
+GetRefreshToken(token) 
+DeleteRefreshToken(token)
+DeleteAllUserRefreshTokens(userId)  // "logout dari semua device"
+```
+
+### 21. Health Check & Request ID
+
+```go
+// GET /health — di luar versioning
+c.JSON(200, gin.H{
+    "status": "healthy",
+    "services": gin.H{"database": "up", "redis": "up"},
+})
+
+// Middleware Request ID
+requestID := uuid.New().String()
+c.Set("requestId", requestID)
+c.Header("X-Request-ID", requestID)
+
+// Di logger — tambahkan requestId
+slog.Info("Request", "requestId", c.GetString("requestId"), ...)
+```
+
+### 22. Email Sending
+
+```go
+// .env
+SMTP_HOST=sandbox.smtp.mailtrap.io
+SMTP_PORT=587
+SMTP_USERNAME=xxx
+SMTP_PASSWORD=xxx
+SMTP_FROM=noreply@eventapi.com
+
+// helpers/email.go
+helpers.SendEmail(helpers.EmailData{
+    To:      "user@test.com",
+    Subject: "Welcome!",
+    Body:    helpers.WelcomeEmailBody(email),
+})
+
+// Kirim di background (jangan blocking response!)
+go helpers.SendEmail(...)
+// Atau lebih baik: pakai worker pool (Sesi 23)
+workers.Enqueue(workers.Job{Name: "email", Execute: func() error { ... }})
+```
+
+### 23. Background Jobs / Worker Pool
+
+```go
+// workers/worker.go
+type Job struct {
+    Name    string
+    Execute func() error
+}
+
+workers.Start(3, 100)    // 3 workers, queue 100
+workers.Enqueue(job)     // tambah job ke antrian
+workers.Stop()           // graceful shutdown (tunggu job selesai)
+
+// Keunggulan vs `go func()`:
+// - Jumlah goroutine terbatas (tidak membanjiri server)
+// - Job queue dengan kapasitas (tidak unlimited)
+// - Graceful shutdown (tunggu job selesai sebelum exit)
+```
+
+### 24. Docker & Deployment
+
+```dockerfile
+# Multi-stage build (image ~15-20MB)
+FROM golang:1.26-alpine AS builder
+RUN CGO_ENABLED=0 GOOS=linux go build -o server .
+
+FROM alpine:latest
+COPY --from=builder /app/server .
+CMD ["./server"]
+```
+
+```yaml
+# docker-compose.yml
+services:
+  api:      # Go API
+  mysql:    # Database (port 3307:3306)
+  redis:    # Cache (port 6380:6379)
+```
+
+```bash
+# Docker commands
+docker compose up --build      # build & jalankan
+docker compose up --build -d   # background
+docker compose logs -f api     # lihat logs
+docker compose down            # stop
+docker compose down -v         # stop & hapus data
+
+# Migration di Docker (perhatikan port 3307!)
+migrate -database "mysql://root:rootpassword@tcp(localhost:3307)/go_udemy" -path migrations up
+```
+
+```env
+# .env.docker — hostname pakai nama service, bukan localhost!
+DB_DSN=root:rootpassword@tcp(mysql:3306)/go_udemy?parseTime=true
+REDIS_ADDR=redis:6379
+```
+
+---
+
+## Middleware Order
+
+```go
+server.Use(middlewares.RequestID())                        // 1. Assign UUID
+server.Use(middlewares.RateLimiter())                      // 2. Tolak spam
+server.Use(middlewares.CORSMiddleware())                   // 3. Handle preflight
+server.Use(middlewares.TimeoutMiddleware(5 * time.Second)) // 4. Batas waktu
+server.Use(middlewares.RequestLogger())                    // 5. Log request
+// ... lalu routes + auth + RBAC middleware
+```
+
+## Full Project Structure
+
+```
+REST-API/
+├── main.go                       # Entry point
+├── .env / .env.docker            # Environment variables
+├── Dockerfile                    # Multi-stage build
+├── docker-compose.yml            # API + MySQL + Redis
+├── db/
+│   ├── db.go                     # MySQL connection
+│   └── redis.go                  # Redis connection
+├── models/
+│   ├── event.go                  # Event CRUD + soft delete
+│   ├── user.go                   # User auth + RBAC
+│   └── token.go                  # Refresh token management
+├── routes/
+│   ├── routes.go                 # Route registration + versioning
+│   ├── event.go                  # Event handlers + cache
+│   ├── users.go                  # Auth handlers + refresh token
+│   ├── register.go               # Registration handlers
+│   └── health.go                 # Health check endpoint
+├── middlewares/
+│   ├── auth.go                   # JWT authentication
+│   ├── authorize.go              # RBAC (RequireRole)
+│   ├── cors.go                   # CORS policy
+│   ├── logger.go                 # Request logging + request ID
+│   ├── ratelimit.go              # Rate limiting per IP
+│   ├── requestid.go              # UUID request ID
+│   └── timeout.go                # Request timeout
+├── helpers/
+│   ├── response.go               # Standard response
+│   ├── upload.go                 # File upload
+│   ├── cache.go                  # Redis cache helpers
+│   ├── email.go                  # SMTP email sender
+│   └── email_templates.go        # HTML email templates
+├── utils/
+│   ├── jwt.go                    # JWT + refresh token
+│   └── hash.go                   # bcrypt
+├── workers/
+│   └── worker.go                 # Background job worker pool
+├── migrations/                   # Database migration files
+├── uploads/                      # Uploaded files
+└── docs/                         # Swagger generated docs
+```

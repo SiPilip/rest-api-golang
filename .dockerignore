@@ -1,0 +1,11 @@
+.env
+uploads/*
+*.exe
+*.test
+.git
+.gitignore
+benchmark.ps1
+WORKER.md
+learning_plan_tier3.md
+api-test/
+tests/
